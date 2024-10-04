@@ -219,11 +219,15 @@ export default function InteractiveAvatar() {
   }, [mediaStream, stream]);
 
   return (
-    <div className="w-full flex flex-col gap-4">
+    <div className="w-full flex flex-col gap-4"  style={{
+      display: 'flex',              
+      alignContent: 'center',         
+      justifyContent: 'center'       
+    }}>
       <Card>
-        <CardBody className="h-[500px] flex flex-col justify-center items-center">
+        <CardBody className="h-[500px] flex flex-col justify-center items-center"  style={{ backgroundColor: '#78787833' }}>
           {stream ? (
-            <div className="h-[500px] w-[900px] justify-center items-center flex rounded-lg overflow-hidden">
+            <div className="h-[500px] w-[900px] justify-center items-center flex rounded-lg overflow-hidden" style={{ backgroundColor: '#78787833' }}>
               <video
                 ref={mediaStream}
                 autoPlay
@@ -240,7 +244,12 @@ export default function InteractiveAvatar() {
                 <Button
                   size="md"
                   onClick={handleInterrupt}
-                  className="bg-gradient-to-tr from-indigo-500 to-indigo-300 text-white rounded-lg"
+                  style={{
+                    fontWeight: '400', 
+                    border: '1px solid #1f816d',
+                    backgroundColor: '#78787833',
+                    borderRadius: '5px'
+                  }}
                   variant="shadow"
                 >
                   Interrupt task
@@ -248,7 +257,11 @@ export default function InteractiveAvatar() {
                 <Button
                   size="md"
                   onClick={endSession}
-                  className="bg-gradient-to-tr from-indigo-500 to-indigo-300  text-white rounded-lg"
+                  style={{
+                    fontWeight: '400', 
+                    backgroundColor: '#1f816d',
+                    borderRadius: '5px'
+                  }}
                   variant="shadow"
                 >
                   End session
@@ -270,7 +283,12 @@ export default function InteractiveAvatar() {
               <Button
                 size="md"
                 onClick={startSession}
-                className="bg-gradient-to-tr from-indigo-500 to-indigo-300 w-full text-white"
+                style={{
+                  fontWeight: '400', 
+                  backgroundColor: '#1f816d',
+                  borderRadius: '5px', 
+                  width: '70%',
+                }}
                 variant="shadow"
               >
                 Start session
@@ -281,7 +299,7 @@ export default function InteractiveAvatar() {
           )}
         </CardBody>
         <Divider />
-        <CardFooter className="flex flex-col gap-3 relative">
+        <CardFooter className="flex flex-col gap-3 relative"  style={{ backgroundColor: '#78787833' }}>
           <InteractiveAvatarTextInput
             label="Chat"
             placeholder="Type something for the avatar to respond"
@@ -294,11 +312,11 @@ export default function InteractiveAvatar() {
           {text && <Chip className="absolute right-16 top-6">Listening</Chip>}
         </CardFooter>
       </Card>
-      <p className="font-mono text-right">
+      {/* <p className="font-mono text-right">
         <span className="font-bold">Console:</span>
         <br />
         {debug}
-      </p>
+      </p> */}
     </div>
   );
 }
