@@ -1,5 +1,9 @@
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
-import StreamingAvatar, {AvatarQuality, StreamingEvents} from "@heygen/streaming-avatar";
+import StreamingAvatar, {
+  AvatarQuality,
+  StreamingEvents,
+  VoiceEmotion,
+} from "@heygen/streaming-avatar";
 
 import {
   Button,
@@ -14,7 +18,7 @@ import {
   Chip,
 } from "@nextui-org/react";
 import { useEffect, useRef, useState } from "react";
-import { usePrevious } from 'ahooks'
+import { usePrevious } from "ahooks";
 import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
 import { AVATARS } from "@/app/lib/constants";
 
@@ -30,8 +34,9 @@ export default function InteractiveAvatar() {
   const mediaStream = useRef<HTMLVideoElement>(null);
   const avatar = useRef<StreamingAvatar | null>(null);
 
-  const REACT_APP_LLM_API_TOKEN = 'eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3MjgyOTE4ODYsImlhdCI6MTcyODAzMjY4NiwiZW1haWwiOiJhbW9AeXVra2FsYWIuY29tIiwiZ3JvdXBzIjpbIkFETUlOIiwiU1VCU0NSSVBUSU9OX0FMTCJdfQ.H1kmKTsNM-MXkJ9ym59nPnGQQg8eUbqq-NOLl1t_T_MxumDoNYIGaR3ASjk42Elhp65hsOwqOZX0SZe5polFyw';
-  const history = []
+  const REACT_APP_LLM_API_TOKEN =
+    "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzUxMiJ9.eyJleHAiOjE3MjgyOTE4ODYsImlhdCI6MTcyODAzMjY4NiwiZW1haWwiOiJhbW9AeXVra2FsYWIuY29tIiwiZ3JvdXBzIjpbIkFETUlOIiwiU1VCU0NSSVBUSU9OX0FMTCJdfQ.H1kmKTsNM-MXkJ9ym59nPnGQQg8eUbqq-NOLl1t_T_MxumDoNYIGaR3ASjk42Elhp65hsOwqOZX0SZe5polFyw";
+  const history = [];
   async function fetchAccessToken() {
     try {
       const response = await fetch("/api/get-access-token", {
@@ -67,13 +72,18 @@ export default function InteractiveAvatar() {
     try {
       const res = await avatar.current.createStartAvatar({
         quality: AvatarQuality.Low,
-        avatarName: avatarId,
+        avatarName: AVATARS[3].avatar_id,
         knowledgeId: knowledgeId,
+        voice: {
+          rate: 1, // 0.5 ~ 1.5
+          emotion: VoiceEmotion.FRIENDLY,
+          voiceId: "f772a099cbb7421eb0176240c611fc43",
+        },
       });
 
       setData(res);
       avatar.current?.on(StreamingEvents.STREAM_READY, (event) => {
-        console.log('Stream ready:', event.detail);
+        console.log("Stream ready:", event.detail);
         setStream(event.detail);
       });
     } catch (error) {
@@ -89,67 +99,78 @@ export default function InteractiveAvatar() {
       setDebug("Avatar API not initialized");
       return;
     }
-  
+
     try {
       // Ensure session is active before speaking
       if (!data?.session_id || data?.session_id === "") {
         setDebug("Session is not active. Starting a new session.");
-        await startSession();  // Start a new session if none exists
+        await startSession(); // Start a new session if none exists
       }
-  
+
       // Check if text input is valid
       if (!text.trim()) {
         setDebug("Message cannot be empty");
         setIsLoadingRepeat(false);
         return;
       }
-  
+
       // Define the LLM API payload as a valid dictionary (object)
       const payload = {
-        message: text.trim(),  // The message to be sent to the LLM API
-        history: history,      // Ensure history is an array or object if expected
+        message: text.trim(), // The message to be sent to the LLM API
+        history: history, // Ensure history is an array or object if expected
       };
-  
-      console.log("Sending payload:", payload);  // Debugging
-  
+
+      console.log("Sending payload:", payload); // Debugging
+
       // Your LLM API request
-      const response = await fetch('https://llm.playground.yukkalab.com/api/v2/chat', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',  // Ensure JSON content-type
-          'Authorization': `Bearer ${REACT_APP_LLM_API_TOKEN}`,  // Use token from environment
-        },
-        body: JSON.stringify(payload),  // Convert JS object to JSON
-      });
-  
+      const response = await fetch(
+        "https://llm.playground.yukkalab.com/api/v2/chat",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json", // Ensure JSON content-type
+            Authorization: `Bearer ${REACT_APP_LLM_API_TOKEN}`, // Use token from environment
+          },
+          body: JSON.stringify(payload), // Convert JS object to JSON
+        }
+      );
+
       // Check if the response is successful
       if (!response.ok) {
-        throw new Error(`API returned status ${response.status}: ${response.statusText}`);
+        throw new Error(
+          `API returned status ${response.status}: ${response.statusText}`
+        );
       }
-  
+
       // Parse the response as JSON
       const result = await response.json();
-  
+
       // Ensure that the LLM response contains text for the avatar to speak
-      const llmResponse =(result.summary && result.summary.text) || (result.messages && result.messages[0]);
+      const llmResponse =
+        (result.summary && result.summary.text) ||
+        (result.messages && result.messages[0]);
       console.log("Received response from LLM:", llmResponse);
-  
+      console.log("LLM response:", result);
       // Now pass the LLM's response to the avatar for speaking
-      await avatar.current.speak({
-        session_id: data?.session_id!,  // Avatar session ID
-        text: llmResponse,  // LLM's response text
-        task_mode: "sync",  // Synchronous task mode
-        task_type: "repeat"  // Type of task; "repeat" or "chat"
-      }).catch((e) => {
-        console.error(`Speak method failed for session ${data?.session_id} with text: "${llmResponse}"`, e);
-        setDebug(e.message);
-      });
-  
+      await avatar.current
+        .speak({
+          session_id: data?.session_id!, // Avatar session ID
+          text: llmResponse, // LLM's response text
+          task_mode: "sync", // Synchronous task mode
+          task_type: "repeat", // Type of task; "repeat" or "chat"
+        })
+        .catch((e) => {
+          console.error(
+            `Speak method failed for session ${data?.session_id} with text: "${llmResponse}"`,
+            e
+          );
+          setDebug(e.message);
+        });
     } catch (error) {
       console.error("Error while communicating with LLM:", error);
       setDebug(`Error while communicating with LLM: ${error.message}`);
     }
-  
+
     setIsLoadingRepeat(false);
   }
 
@@ -159,11 +180,9 @@ export default function InteractiveAvatar() {
 
       return;
     }
-    await avatar.current
-      .interrupt({ sessionId: 1 })
-      .catch((e) => {
-        setDebug(e.message);
-      });
+    await avatar.current.interrupt({ sessionId: 1 }).catch((e) => {
+      setDebug(e.message);
+    });
   }
   async function endSession() {
     if (!avatar.current) {
@@ -171,17 +190,15 @@ export default function InteractiveAvatar() {
 
       return;
     }
-    await avatar.current.stopAvatar({
-      sessionId: data?.session_id!,
-    });
+    await avatar.current.stopAvatar();
     setStream(undefined);
   }
   const previousText = usePrevious(text);
   useEffect(() => {
     if (!previousText && text) {
-      avatar.current?.startListening({ sessionId: data?.session_id! });
+      avatar.current?.startListening();
     } else if (previousText && !text) {
-      avatar?.current?.stopListening({ sessionId: data?.session_id! });
+      avatar?.current?.stopListening();
     }
   }, [text, previousText]);
 
@@ -249,30 +266,6 @@ export default function InteractiveAvatar() {
                   onChange={(e) => setKnowledgeId(e.target.value)}
                   placeholder="Enter a custom knowledge ID"
                 />
-                <p className="text-sm font-medium leading-none">
-                  Custom Avatar ID (optional)
-                </p>
-                <Input
-                  value={avatarId}
-                  onChange={(e) => setAvatarId(e.target.value)}
-                  placeholder="Enter a custom avatar ID"
-                />
-                <Select
-                  placeholder="Or select one from these example avatars"
-                  size="md"
-                  onChange={(e) => {
-                    setAvatarId(e.target.value);
-                  }}
-                >
-                  {AVATARS.map((avatar) => (
-                    <SelectItem
-                      key={avatar.avatar_id}
-                      textValue={avatar.avatar_id}
-                    >
-                      {avatar.name}
-                    </SelectItem>
-                  ))}
-                </Select>
               </div>
               <Button
                 size="md"
@@ -298,9 +291,7 @@ export default function InteractiveAvatar() {
             disabled={!stream}
             loading={isLoadingRepeat}
           />
-          {
-            text && <Chip className='absolute right-16 top-6'>Listening</Chip>
-          }
+          {text && <Chip className="absolute right-16 top-6">Listening</Chip>}
         </CardFooter>
       </Card>
       <p className="font-mono text-right">
