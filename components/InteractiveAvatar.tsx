@@ -39,11 +39,6 @@ export default function InteractiveAvatar() {
 
   const toggleVisibility = () => setPassIsVisible(!passIsVisible);
 
-  const USER_CREDENTIALS = {
-    email: "cemre.a@yukkalab.com", // Replace with real values
-    password: "12345Aa=",
-  };
-
   const TOKEN_KEY = "cockpitToken";
   const TOKEN_EXPIRY_KEY = "cockpitTokenExpiry";
 
