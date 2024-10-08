@@ -169,9 +169,20 @@ export default function InteractiveAvatar() {
       const result = await response.json();
 
       // Ensure that the LLM response contains text for the avatar to speak
-      const llmResponse =
+      let llmResponse =
         (result.summary && result.summary.text) ||
         (result.messages && result.messages[0]);
+
+        if (llmResponse) {
+          if (llmResponse.includes("Summary")) {
+            llmResponse = llmResponse.split("Summary")[1].trim();
+          } else if (llmResponse.includes("Conclusion")) {
+            llmResponse = llmResponse.split("Conclusion")[1].trim(); 
+          }
+        }
+
+        llmResponse = llmResponse.replace(/yukka/gi, "YUUKA");
+
       console.log("Received response from LLM:", llmResponse);
       console.log("LLM response:", result);
       // Now pass the LLM's response to the avatar for speaking
@@ -281,7 +292,7 @@ export default function InteractiveAvatar() {
   useEffect(() => {
     if (data?.session_id && stream) {
       avatarSpeakTrigger(
-        "Welcome to the YukkaLab News Assistant How can I assist you today?"
+        "Hi there, I am your YUUKA Lab LLM News Assistant. How can I assist you today with your financial analysis or any other queries you might have?"
       );
     }
   }, [data?.session_id, stream]);
