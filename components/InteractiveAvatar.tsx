@@ -109,7 +109,7 @@ export default function InteractiveAvatar() {
 
     try {
       const res = await avatar.current.createStartAvatar({
-        quality: AvatarQuality.Low,
+        quality: AvatarQuality.High,
         avatarName: "37f4d912aa564663a1cf8d63acd0e1ab",
         voice: {
           rate: 1.05, // 0.5 ~ 1.5
@@ -172,7 +172,7 @@ export default function InteractiveAvatar() {
   
       // Trigger the avatar to speak the randomly chosen response
       await avatarSpeakTrigger(randomResponse);
-      
+
       setIsLoadingRepeat(true);
 
       try {
