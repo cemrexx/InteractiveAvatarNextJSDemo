@@ -1,5 +1,5 @@
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
-import { Microphone } from "@phosphor-icons/react";
+import { Microphone, StopCircle } from "@phosphor-icons/react";
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents,
@@ -129,7 +129,7 @@ export default function InteractiveAvatar() {
     formData.append("model", "whisper-1"); // Add the model parameter here
     try {
       const response = await fetch(
-        "https://cors-anywhere.herokuapp.com/https://api.openai.com/v1/audio/transcriptions",
+        "https://api.openai.com/v1/audio/transcriptions",
         {
           method: "POST",
           headers: {
@@ -435,7 +435,7 @@ export default function InteractiveAvatar() {
                   }}
                   variant="shadow"
                 >
-                  Interrupt task
+                  <StopCircle size={32} />
                 </Button>
                 <Button
                   size="md"
@@ -512,14 +512,13 @@ export default function InteractiveAvatar() {
             style={{ backgroundColor: "#78787833" }}
           >
             <InteractiveAvatarTextInput
-              label="Chat"
               placeholder="Type something for the avatar to respond"
               input={text}
               onSubmit={() => handleSpeak(text)}
               setInput={setText}
               loading={isLoadingRepeat}
               disabled={avatarIsSpeaking}
-              hideSubmitButton={isListening}
+              hideSubmitButton={isListening || text === ""}
               endContent={
                 isLoadingRepeat ? (
                   <Spinner

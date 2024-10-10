@@ -3,7 +3,7 @@ import { PaperPlaneRight } from "@phosphor-icons/react";
 import clsx from "clsx";
 
 interface StreamingAvatarTextInputProps {
-  label: string;
+  label?: string;
   placeholder: string;
   input: string;
   onSubmit: () => Promise<void>;
