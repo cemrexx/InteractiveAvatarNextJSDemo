@@ -1,10 +1,13 @@
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
+import { Microphone, StopCircle } from "@phosphor-icons/react";
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents,
   TaskType,
   VoiceEmotion,
 } from "@heygen/streaming-avatar";
+import clsx from "clsx";
+
 import { jwtDecode } from "jwt-decode";
 
 import {
@@ -15,9 +18,8 @@ import {
   Divider,
   Input,
   Spinner,
-  Chip,
 } from "@nextui-org/react";
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrevious } from "ahooks";
 import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
 import { EyeFilledIcon, EyeSlashFilledIcon } from "./Icons";
@@ -36,8 +38,16 @@ export default function InteractiveAvatar() {
   const mediaStream = useRef<HTMLVideoElement>(null);
   const avatar = useRef<StreamingAvatar | null>(null);
   const [passIsVisible, setPassIsVisible] = useState(false);
+  const [isListening, setIsListening] = useState(false);
+  const [avatarIsSpeaking, setAvatarIsSpeaking] = useState(false);
+  const [chatHistory, setChatHistory] = useState([]);
 
   const toggleVisibility = () => setPassIsVisible(!passIsVisible);
+  const toogleMicListening = () => setIsListening(!isListening);
+  const [recordedUrl, setRecordedUrl] = useState("");
+  const audioStream = useRef<MediaStream | null>(null);
+  const mediaRecorder = useRef<MediaRecorder | null>(null);
+  const chunks = useRef<Blob[]>([]);
 
   const TOKEN_KEY = "cockpitToken";
   const TOKEN_EXPIRY_KEY = "cockpitTokenExpiry";
@@ -73,7 +83,6 @@ export default function InteractiveAvatar() {
 
     return "";
   }
-
   async function startSession() {
     setIsLoadingSession(true);
     const newToken = await fetchAccessToken();
@@ -83,21 +92,22 @@ export default function InteractiveAvatar() {
     const cockpitToken = await fetchCockpitToken();
     if (!cockpitToken) return;
     avatar.current.on(StreamingEvents.AVATAR_START_TALKING, (e) => {
-      console.log("Avatar started talking", e);
+      setAvatarIsSpeaking(true);
     });
     avatar.current.on(StreamingEvents.AVATAR_STOP_TALKING, (e) => {
-      console.log("Avatar stopped talking", e);
+      setAvatarIsSpeaking(false);
     });
     avatar.current.on(StreamingEvents.STREAM_DISCONNECTED, () => {
       console.log("Stream disconnected");
       endSession();
     });
+
     try {
       const res = await avatar.current.createStartAvatar({
         quality: AvatarQuality.Low,
         avatarName: "37f4d912aa564663a1cf8d63acd0e1ab",
         voice: {
-          rate: 1, // 0.5 ~ 1.5
+          rate: 1.5, // 0.5 ~ 1.5
           emotion: VoiceEmotion.FRIENDLY,
           voiceId: "f772a099cbb7421eb0176240c611fc43",
         },
@@ -112,90 +122,118 @@ export default function InteractiveAvatar() {
       console.error("Error starting avatar session:", error);
     }
   }
-
-  async function handleSpeak() {
-    avatarSpeakTrigger(
-      "That is a very good question I am generating the response for you that will take a few seconds"
-    );
-    setIsLoadingRepeat(true);
-    if (!avatar.current) {
-      setDebug("Avatar API not initialized");
-      return;
-    }
-
+  const handleTranscribe = async (audioBlob: any) => {
+    const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY";
+    const formData = new FormData();
+    formData.append("file", audioBlob); // Add your audio blob here
+    formData.append("model", "whisper-1"); // Add the model parameter here
     try {
-      // Ensure session is active before speaking
-      if (!data?.session_id || data?.session_id === "") {
-        setDebug("Session is not active. Starting a new session.");
-        await startSession(); // Start a new session if none exists
-      }
-
-      // Check if text input is valid
-      if (!text.trim()) {
-        setDebug("Message cannot be empty");
-        setIsLoadingRepeat(false);
-        return;
-      }
-
-      // Define the LLM API payload as a valid dictionary (object)
-      const payload = {
-        message: text.trim(), // The message to be sent to the LLM API
-        history: history, // Ensure history is an array or object if expected
-      };
-
-      console.log("Sending payload:", payload); // Debugging
-
-      // Your LLM API request
       const response = await fetch(
-        "https://llm.playground.yukkalab.com/api/v2/chat",
+        "https://api.openai.com/v1/audio/transcriptions",
         {
           method: "POST",
           headers: {
-            "Content-Type": "application/json", // Ensure JSON content-type
-            Authorization: `Bearer ${cockpitToken}`, // Use token from environment
+            ContentType: "multipart/form-data",
+            Authorization: `Bearer ${OPENAI_API_KEY}`,
           },
-          body: JSON.stringify(payload), // Convert JS object to JSON
+          body: formData,
         }
       );
 
-      // Check if the response is successful
-      if (!response.ok) {
-        throw new Error(
-          `API returned status ${response.status}: ${response.statusText}`
-        );
+      const data = await response.json();
+      const transcript = data.text;
+      console.log("Transcription:", transcript);
+      // setText(transcript);
+      handleSpeak(transcript);
+    } catch (error) {
+      console.error("Error transcribing audio:", error);
+    }
+  };
+  const handleSpeak = useCallback(
+    async (inputText: string) => {
+      if (!avatar.current) {
+        setDebug("Avatar API not initialized");
+
+        return;
       }
+      await avatarSpeakTrigger(
+        "That is a very good question I am generating the response for you that will take a few seconds"
+      );
+      setIsLoadingRepeat(true);
 
-      // Parse the response as JSON
-      const result = await response.json();
+      try {
+        console.log("Text to send to LLM:", text);
+        // Ensure session is active before speaking
+        if (!data?.session_id || data?.session_id === "") {
+          setDebug("Session is not active. Starting a new session.");
+          await startSession(); // Start a new session if none exists
+        }
 
-      // Ensure that the LLM response contains text for the avatar to speak
-      let llmResponse =
-        (result.summary && result.summary.text) ||
-        (result.messages && result.messages[0]);
+        // Check if text input is valid
+        if (!inputText.trim()) {
+          setDebug("Message cannot be empty");
+          setIsLoadingRepeat(false);
+          return;
+        }
+
+        // Define the LLM API payload as a valid dictionary (object)
+        const payload = {
+          message: inputText.trim(), // The message to be sent to the LLM API
+          history: history, // Ensure history is an array or object if expected
+        };
+
+        console.log("Sending payload:", payload); // Debugging
+
+        // Your LLM API request
+        const response = await fetch(
+          "https://llm.playground.yukkalab.com/api/v2/chat",
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json", // Ensure JSON content-type
+              Authorization: `Bearer ${cockpitToken}`, // Use token from environment
+            },
+            body: JSON.stringify(payload), // Convert JS object to JSON
+          }
+        );
+
+        if (!response.ok) {
+          throw new Error(
+            `API returned status ${response.status}: ${response.statusText}`
+          );
+        }
+        const result = await response.json();
+
+        // Ensure that the LLM response contains text for the avatar to speak
+        let llmResponse =
+          (result.summary && result.summary.text) ||
+          (result.messages && result.messages[0]);
 
         if (llmResponse) {
           if (llmResponse.includes("Summary")) {
             llmResponse = llmResponse.split("Summary")[1].trim();
           } else if (llmResponse.includes("Conclusion")) {
-            llmResponse = llmResponse.split("Conclusion")[1].trim(); 
+            llmResponse = llmResponse.split("Conclusion")[1].trim();
           }
         }
 
         llmResponse = llmResponse.replace(/yukka/gi, "YUUKA");
 
-      console.log("Received response from LLM:", llmResponse);
-      console.log("LLM response:", result);
-      // Now pass the LLM's response to the avatar for speaking
+        console.log("Received response from LLM:", llmResponse);
+        console.log("LLM response:", result);
+        // Now pass the LLM's response to the avatar for speaking
 
-      avatarSpeakTrigger(llmResponse);
-    } catch (error) {
-      setDebug(
-        `Error while communicating with LLM: ${(error as Error).message}`
-      );
-    }
+        avatarSpeakTrigger(llmResponse);
+      } catch (error) {
+        setDebug(
+          `Error while communicating with LLM: ${(error as Error).message}`
+        );
+      }
 
-    setIsLoadingRepeat(false);
-  }
+      setIsLoadingRepeat(false);
+    },
+    [text, cockpitToken, data?.session_id]
+  );
 
   async function handleInterrupt() {
     if (!avatar.current) {
@@ -251,8 +289,6 @@ export default function InteractiveAvatar() {
     }
   };
   async function fetchCockpitToken() {
-    console.log("userName", userEmail);
-    console.log("password", userPassword);
     const storedToken = localStorage.getItem(TOKEN_KEY);
     if (storedToken && !isTokenExpired()) {
       setCockpitToken(storedToken);
@@ -274,6 +310,54 @@ export default function InteractiveAvatar() {
         setDebug(e.message);
       });
   };
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      audioStream.current = stream;
+      mediaRecorder.current = new MediaRecorder(stream);
+      mediaRecorder.current.ondataavailable = (e) => {
+        if (e.data.size > 0) {
+          chunks.current.push(e.data);
+        }
+      };
+      mediaRecorder.current.onstop = () => {
+        const recordedBlob = new Blob(chunks.current, { type: "audio/wav" });
+        const formData = new FormData();
+        formData.append("file", recordedBlob);
+        console.log("FormData with audio blob:", formData);
+        handleTranscribe(recordedBlob);
+        const url = URL.createObjectURL(recordedBlob);
+        setRecordedUrl(url);
+        chunks.current = [];
+      };
+      mediaRecorder.current.start();
+    } catch (error) {
+      console.error("Error accessing microphone:", error);
+    }
+  };
+
+  useEffect(() => {
+    if (isListening) {
+      startRecording();
+    } else {
+      if (
+        mediaRecorder.current &&
+        mediaRecorder.current.state === "recording"
+      ) {
+        mediaRecorder.current.stop();
+      }
+      if (audioStream.current) {
+        audioStream.current.getTracks().forEach((track) => {
+          track.stop();
+        });
+      }
+    }
+  }, [isListening]);
+
+  const handleMicClick = () => {
+    toogleMicListening();
+  };
+
   const previousText = usePrevious(text);
   useEffect(() => {
     if (!previousText && text) {
@@ -351,7 +435,7 @@ export default function InteractiveAvatar() {
                   }}
                   variant="shadow"
                 >
-                  Interrupt task
+                  <StopCircle size={32} />
                 </Button>
                 <Button
                   size="md"
@@ -428,14 +512,39 @@ export default function InteractiveAvatar() {
             style={{ backgroundColor: "#78787833" }}
           >
             <InteractiveAvatarTextInput
-              label="Chat"
               placeholder="Type something for the avatar to respond"
               input={text}
-              onSubmit={handleSpeak}
+              onSubmit={() => handleSpeak(text)}
               setInput={setText}
               loading={isLoadingRepeat}
+              disabled={avatarIsSpeaking}
+              hideSubmitButton={isListening || text === ""}
+              endContent={
+                isLoadingRepeat ? (
+                  <Spinner
+                    className="text-indigo-300 hover:text-indigo-200"
+                    size="sm"
+                    color="default"
+                  />
+                ) : (
+                  <Button
+                    onClick={handleMicClick}
+                    style={{
+                      backgroundColor: isListening ? "#1f816d" : "transparent",
+                    }}
+                    className={clsx(
+                      "text-indigo-300 hover:text-indigo-200",
+                      (avatarIsSpeaking || text !== "") && "opacity-0"
+                    )}
+                  >
+                    <Microphone
+                      size={24}
+                      className="text-indigo-300 hover:text-indigo-200"
+                    />
+                  </Button>
+                )
+              }
             />
-            {text && <Chip className="absolute right-16 top-6">Listening</Chip>}
           </CardFooter>
         )}
       </Card>
