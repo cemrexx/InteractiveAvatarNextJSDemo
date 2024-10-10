@@ -1,5 +1,9 @@
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
 import { Microphone, StopCircle } from "@phosphor-icons/react";
+import Image from 'next/image';
+import yukkaLogo from '../public/Yukka-logo-green.png';
+
+
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents,
@@ -56,6 +60,7 @@ export default function InteractiveAvatar() {
     const expirationTime = new Date(expiresIn * 1000);
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(TOKEN_EXPIRY_KEY, expirationTime.toString());
+   
     setCockpitToken(token);
   };
 
@@ -107,9 +112,9 @@ export default function InteractiveAvatar() {
         quality: AvatarQuality.Low,
         avatarName: "37f4d912aa564663a1cf8d63acd0e1ab",
         voice: {
-          rate: 1.5, // 0.5 ~ 1.5
-          emotion: VoiceEmotion.FRIENDLY,
-          voiceId: "f772a099cbb7421eb0176240c611fc43",
+          rate: 1.05, // 0.5 ~ 1.5
+          emotion: VoiceEmotion.SERIOUS,
+          voiceId: "45980606751346deaf6415a2ba6cdfde",
         },
       });
       console.log("Start avatar response:", res);
@@ -123,22 +128,21 @@ export default function InteractiveAvatar() {
     }
   }
   const handleTranscribe = async (audioBlob: any) => {
-    const OPENAI_API_KEY = "YOUR_OPENAI_API_KEY";
+    const NEXT_PUBLIC_OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
+    console.log( NEXT_PUBLIC_OPENAI_API_KEY)
     const formData = new FormData();
     formData.append("file", audioBlob); // Add your audio blob here
     formData.append("model", "whisper-1"); // Add the model parameter here
+
     try {
-      const response = await fetch(
-        "https://api.openai.com/v1/audio/transcriptions",
-        {
-          method: "POST",
-          headers: {
-            ContentType: "multipart/form-data",
-            Authorization: `Bearer ${OPENAI_API_KEY}`,
-          },
-          body: formData,
-        }
-      );
+      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
+        method: "POST",
+        headers: {
+          "Authorization": `Bearer ${NEXT_PUBLIC_OPENAI_API_KEY}`,
+        },
+        body: formData,
+      });
+  
 
       const data = await response.json();
       const transcript = data.text;
@@ -156,9 +160,19 @@ export default function InteractiveAvatar() {
 
         return;
       }
-      await avatarSpeakTrigger(
-        "That is a very good question I am generating the response for you that will take a few seconds"
-      );
+
+      const responses = [
+        "That's an excellent question! Let me think about that. I'm currently looking through the latest news and analytics. It may take a few moments. Once I gather all the relevant information, I'll provide you with a concise summary.",
+        "You are on fire today! You want to know it all. Let me scan through the news and get back to you on that.",
+        "Hmmmm... interesting question. Let me see what I can find in the news about this."
+      ];
+  
+      // Randomly choose one response from the array
+      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+  
+      // Trigger the avatar to speak the randomly chosen response
+      await avatarSpeakTrigger(randomResponse);
+      
       setIsLoadingRepeat(true);
 
       try {
@@ -199,7 +213,7 @@ export default function InteractiveAvatar() {
 
         if (!response.ok) {
           throw new Error(
-            `API returned status ${response.status}: ${response.statusText}`
+            `open returned status ${response.status}: ${response.statusText}`
           );
         }
         const result = await response.json();
@@ -376,7 +390,7 @@ export default function InteractiveAvatar() {
   useEffect(() => {
     if (data?.session_id && stream) {
       avatarSpeakTrigger(
-        "Hi there, I am your YUUKA Lab LLM News Assistant. How can I assist you today with your financial analysis or any other queries you might have?"
+        "Hi there, I am your YUUKA LLM News Assistant. How can I assist you today with your financial analysis or any other queries you might have?"
       );
     }
   }, [data?.session_id, stream]);
@@ -399,17 +413,29 @@ export default function InteractiveAvatar() {
         display: "flex",
         alignContent: "center",
         justifyContent: "center",
+        backgroundColor: "#262626"
       }}
     >
+    
+    <div>
+      <Image 
+        src={yukkaLogo} 
+        alt="Yukka Logo" 
+        width={150} 
+        height={100}
+       // You'll need to specify both width and height in Next.js
+      />
+    </div>
+   
       <Card>
         <CardBody
           className="h-[500px] flex flex-col justify-center items-center"
-          style={{ backgroundColor: "#78787833" }}
+          style={{ backgroundColor: "#363636" }}
         >
           {stream ? (
             <div
               className="h-[500px] w-[900px] justify-center items-center flex rounded-lg overflow-hidden"
-              style={{ backgroundColor: "#78787833" }}
+              style={{ backgroundColor: "#363636" }}
             >
               <video
                 ref={mediaStream}
@@ -463,7 +489,7 @@ export default function InteractiveAvatar() {
                   onChange={(e) => setUserEmail(e.target.value)}
                   placeholder="Enter your email"
                 />
-                <p className="text-sm font-medium leading-none">
+                <p className="text-sm font-medium leading-none" style={{marginTop: "35px"}}>
                   Cockpit User Password
                 </p>
                 <Input
@@ -498,7 +524,7 @@ export default function InteractiveAvatar() {
                 }}
                 variant="shadow"
               >
-                Start Asking Questions to YukkaLab News Assistant
+                Start speaking with our agent
               </Button>
             </div>
           ) : (
