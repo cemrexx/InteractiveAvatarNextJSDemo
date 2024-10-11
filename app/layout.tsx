@@ -1,11 +1,9 @@
 import "@/styles/globals.css";
 import clsx from "clsx";
 import { Metadata, Viewport } from "next";
+import { Fira_Code as FontMono, Inter as FontSans } from "next/font/google";
 
 import { Providers } from "./providers";
-
-import { Fira_Code as FontMono, Inter as FontSans } from "next/font/google";
-import NavBar from "@/components/NavBar";
 
 const fontSans = FontSans({
   subsets: ["latin"],
@@ -42,13 +40,16 @@ export default function RootLayout({
   return (
     <html
       suppressHydrationWarning
-      lang="en"
       className={`${fontSans.variable} ${fontMono.variable} font-sans`}
+      lang="en"
     >
       <head />
       <body className={clsx("min-h-screen bg-background antialiased")}>
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <main className="relative flex flex-col h-screen w-screen" style={{justifyContent:"center", backgroundColor:"#262626"}}>
+          <main
+            className="relative flex flex-col h-screen w-screen"
+            style={{ justifyContent: "center", backgroundColor: "#262626" }}
+          >
             {/* <NavBar /> */}
             {children}
           </main>
