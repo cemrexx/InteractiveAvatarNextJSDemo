@@ -1,8 +1,7 @@
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
 import { Microphone, StopCircle } from "@phosphor-icons/react";
-import Image from 'next/image';
-import yukkaLogo from '../public/Yukka-logo-green.png';
-
+import Image from "next/image";
+import yukkaLogo from "../public/Yukka-logo-green.png";
 
 import StreamingAvatar, {
   AvatarQuality,
@@ -60,7 +59,7 @@ export default function InteractiveAvatar() {
     const expirationTime = new Date(expiresIn * 1000);
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(TOKEN_EXPIRY_KEY, expirationTime.toString());
-   
+
     setCockpitToken(token);
   };
 
@@ -79,7 +78,6 @@ export default function InteractiveAvatar() {
         method: "POST",
       });
       const token = await response.text();
-      console.log("Access Token:", token);
 
       return token;
     } catch (error) {
@@ -117,7 +115,6 @@ export default function InteractiveAvatar() {
           voiceId: "45980606751346deaf6415a2ba6cdfde",
         },
       });
-      console.log("Start avatar response:", res);
       setData(res);
       avatar.current?.on(StreamingEvents.STREAM_READY, (event) => {
         console.log("Stream ready:", event.detail);
@@ -129,20 +126,21 @@ export default function InteractiveAvatar() {
   }
   const handleTranscribe = async (audioBlob: any) => {
     const NEXT_PUBLIC_OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-    console.log( NEXT_PUBLIC_OPENAI_API_KEY)
     const formData = new FormData();
     formData.append("file", audioBlob); // Add your audio blob here
     formData.append("model", "whisper-1"); // Add the model parameter here
 
     try {
-      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${NEXT_PUBLIC_OPENAI_API_KEY}`,
-        },
-        body: formData,
-      });
-  
+      const response = await fetch(
+        "https://api.openai.com/v1/audio/transcriptions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${NEXT_PUBLIC_OPENAI_API_KEY}`,
+          },
+          body: formData,
+        }
+      );
 
       const data = await response.json();
       const transcript = data.text;
@@ -164,19 +162,19 @@ export default function InteractiveAvatar() {
       const responses = [
         "That's an excellent question! Let me think about that. I'm currently looking through the latest news and analytics. It may take a few moments. Once I gather all the relevant information, I'll provide you with a concise summary.",
         "You are on fire today! You want to know it all. Let me scan through the news and get back to you on that.",
-        "Hmmmm... interesting question. Let me see what I can find in the news about this."
+        "Hmmmm... interesting question. Let me see what I can find in the news about this.",
       ];
-  
+
       // Randomly choose one response from the array
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-  
+      const randomResponse =
+        responses[Math.floor(Math.random() * responses.length)];
+
       // Trigger the avatar to speak the randomly chosen response
       await avatarSpeakTrigger(randomResponse);
 
       setIsLoadingRepeat(true);
 
       try {
-        console.log("Text to send to LLM:", text);
         // Ensure session is active before speaking
         if (!data?.session_id || data?.session_id === "") {
           setDebug("Session is not active. Starting a new session.");
@@ -195,8 +193,6 @@ export default function InteractiveAvatar() {
           message: inputText.trim(), // The message to be sent to the LLM API
           history: history, // Ensure history is an array or object if expected
         };
-
-        console.log("Sending payload:", payload); // Debugging
 
         // Your LLM API request
         const response = await fetch(
@@ -234,7 +230,7 @@ export default function InteractiveAvatar() {
         llmResponse = llmResponse.replace(/yukka/gi, "YUUKA");
 
         console.log("Received response from LLM:", llmResponse);
-        console.log("LLM response:", result);
+
         // Now pass the LLM's response to the avatar for speaking
 
         avatarSpeakTrigger(llmResponse);
@@ -338,7 +334,6 @@ export default function InteractiveAvatar() {
         const recordedBlob = new Blob(chunks.current, { type: "audio/wav" });
         const formData = new FormData();
         formData.append("file", recordedBlob);
-        console.log("FormData with audio blob:", formData);
         handleTranscribe(recordedBlob);
         const url = URL.createObjectURL(recordedBlob);
         setRecordedUrl(url);
@@ -413,20 +408,19 @@ export default function InteractiveAvatar() {
         display: "flex",
         alignContent: "center",
         justifyContent: "center",
-        backgroundColor: "#262626"
+        backgroundColor: "#262626",
       }}
     >
-    
-    <div>
-      <Image 
-        src={yukkaLogo} 
-        alt="Yukka Logo" 
-        width={150} 
-        height={100}
-       // You'll need to specify both width and height in Next.js
-      />
-    </div>
-   
+      <div>
+        <Image
+          src={yukkaLogo}
+          alt="Yukka Logo"
+          width={150}
+          height={100}
+          // You'll need to specify both width and height in Next.js
+        />
+      </div>
+
       <Card>
         <CardBody
           className="h-[500px] flex flex-col justify-center items-center"
@@ -489,7 +483,10 @@ export default function InteractiveAvatar() {
                   onChange={(e) => setUserEmail(e.target.value)}
                   placeholder="Enter your email"
                 />
-                <p className="text-sm font-medium leading-none" style={{marginTop: "35px"}}>
+                <p
+                  className="text-sm font-medium leading-none"
+                  style={{ marginTop: "35px" }}
+                >
                   Cockpit User Password
                 </p>
                 <Input
