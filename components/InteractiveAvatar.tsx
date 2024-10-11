@@ -1,9 +1,7 @@
 import type { StartAvatarResponse } from "@heygen/streaming-avatar";
+
 import { Microphone, StopCircle } from "@phosphor-icons/react";
-import Image from 'next/image';
-import yukkaLogo from '../public/Yukka-logo-green.png';
-
-
+import Image from "next/image";
 import StreamingAvatar, {
   AvatarQuality,
   StreamingEvents,
@@ -11,9 +9,7 @@ import StreamingAvatar, {
   VoiceEmotion,
 } from "@heygen/streaming-avatar";
 import clsx from "clsx";
-
 import { jwtDecode } from "jwt-decode";
-
 import {
   Button,
   Card,
@@ -25,6 +21,9 @@ import {
 } from "@nextui-org/react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { usePrevious } from "ahooks";
+
+import yukkaLogo from "../public/Yukka-logo-green.png";
+
 import InteractiveAvatarTextInput from "./InteractiveAvatarTextInput";
 import { EyeFilledIcon, EyeSlashFilledIcon } from "./Icons";
 
@@ -58,28 +57,31 @@ export default function InteractiveAvatar() {
 
   const saveToken = (token: string, expiresIn: number) => {
     const expirationTime = new Date(expiresIn * 1000);
+
     localStorage.setItem(TOKEN_KEY, token);
     localStorage.setItem(TOKEN_EXPIRY_KEY, expirationTime.toString());
-   
+
     setCockpitToken(token);
   };
 
   // Helper function to check token expiration
   const isTokenExpired = () => {
     const expiration = localStorage.getItem(TOKEN_EXPIRY_KEY);
+
     if (!expiration) return true; // No expiry set, assume expired
 
     const now = new Date().getTime();
+
     return now > Number(expiration); // Check if current time is past the expiration time
   };
-  const history = [];
+  const history: never[] = [];
+
   async function fetchAccessToken() {
     try {
       const response = await fetch("/api/get-access-token", {
         method: "POST",
       });
       const token = await response.text();
-      console.log("Access Token:", token);
 
       return token;
     } catch (error) {
@@ -91,10 +93,12 @@ export default function InteractiveAvatar() {
   async function startSession() {
     setIsLoadingSession(true);
     const newToken = await fetchAccessToken();
+
     avatar.current = new StreamingAvatar({
       token: newToken,
     });
     const cockpitToken = await fetchCockpitToken();
+
     if (!cockpitToken) return;
     avatar.current.on(StreamingEvents.AVATAR_START_TALKING, (e) => {
       setAvatarIsSpeaking(true);
@@ -117,7 +121,7 @@ export default function InteractiveAvatar() {
           voiceId: "45980606751346deaf6415a2ba6cdfde",
         },
       });
-      console.log("Start avatar response:", res);
+
       setData(res);
       avatar.current?.on(StreamingEvents.STREAM_READY, (event) => {
         console.log("Stream ready:", event.detail);
@@ -129,23 +133,26 @@ export default function InteractiveAvatar() {
   }
   const handleTranscribe = async (audioBlob: any) => {
     const NEXT_PUBLIC_OPENAI_API_KEY = process.env.NEXT_PUBLIC_OPENAI_API_KEY;
-    console.log( NEXT_PUBLIC_OPENAI_API_KEY)
     const formData = new FormData();
+
     formData.append("file", audioBlob); // Add your audio blob here
     formData.append("model", "whisper-1"); // Add the model parameter here
 
     try {
-      const response = await fetch("https://api.openai.com/v1/audio/transcriptions", {
-        method: "POST",
-        headers: {
-          "Authorization": `Bearer ${NEXT_PUBLIC_OPENAI_API_KEY}`,
-        },
-        body: formData,
-      });
-  
+      const response = await fetch(
+        "https://api.openai.com/v1/audio/transcriptions",
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${NEXT_PUBLIC_OPENAI_API_KEY}`,
+          },
+          body: formData,
+        }
+      );
 
       const data = await response.json();
       const transcript = data.text;
+
       console.log("Transcription:", transcript);
       // setText(transcript);
       handleSpeak(transcript);
@@ -164,19 +171,19 @@ export default function InteractiveAvatar() {
       const responses = [
         "That's an excellent question! Let me think about that. I'm currently looking through the latest news and analytics. It may take a few moments. Once I gather all the relevant information, I'll provide you with a concise summary.",
         "You are on fire today! You want to know it all. Let me scan through the news and get back to you on that.",
-        "Hmmmm... interesting question. Let me see what I can find in the news about this."
+        "Hmmmm... interesting question. Let me see what I can find in the news about this.",
       ];
-  
+
       // Randomly choose one response from the array
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-  
+      const randomResponse =
+        responses[Math.floor(Math.random() * responses.length)];
+
       // Trigger the avatar to speak the randomly chosen response
       await avatarSpeakTrigger(randomResponse);
 
       setIsLoadingRepeat(true);
 
       try {
-        console.log("Text to send to LLM:", text);
         // Ensure session is active before speaking
         if (!data?.session_id || data?.session_id === "") {
           setDebug("Session is not active. Starting a new session.");
@@ -187,6 +194,7 @@ export default function InteractiveAvatar() {
         if (!inputText.trim()) {
           setDebug("Message cannot be empty");
           setIsLoadingRepeat(false);
+
           return;
         }
 
@@ -195,8 +203,6 @@ export default function InteractiveAvatar() {
           message: inputText.trim(), // The message to be sent to the LLM API
           history: history, // Ensure history is an array or object if expected
         };
-
-        console.log("Sending payload:", payload); // Debugging
 
         // Your LLM API request
         const response = await fetch(
@@ -234,7 +240,7 @@ export default function InteractiveAvatar() {
         llmResponse = llmResponse.replace(/yukka/gi, "YUUKA");
 
         console.log("Received response from LLM:", llmResponse);
-        console.log("LLM response:", result);
+
         // Now pass the LLM's response to the avatar for speaking
 
         avatarSpeakTrigger(llmResponse);
@@ -274,6 +280,7 @@ export default function InteractiveAvatar() {
       email: userEmail,
       password: userPassword,
     });
+
     try {
       const response = await fetch(
         "https://customer.api.yukkalab.com/v5/authenticate",
@@ -299,18 +306,23 @@ export default function InteractiveAvatar() {
       return result.token;
     } catch (error) {
       console.error("Error fetching token:", error);
+
       return null;
     }
   };
+
   async function fetchCockpitToken() {
     const storedToken = localStorage.getItem(TOKEN_KEY);
+
     if (storedToken && !isTokenExpired()) {
       setCockpitToken(storedToken);
+
       return storedToken; // Return existing token if it's valid
     }
 
     // Fetch new token if none exists or it's expired
     const newToken = await fetchNewToken();
+
     return newToken;
   }
   const avatarSpeakTrigger = async (avatarText: string) => {
@@ -327,6 +339,7 @@ export default function InteractiveAvatar() {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
       audioStream.current = stream;
       mediaRecorder.current = new MediaRecorder(stream);
       mediaRecorder.current.ondataavailable = (e) => {
@@ -337,10 +350,11 @@ export default function InteractiveAvatar() {
       mediaRecorder.current.onstop = () => {
         const recordedBlob = new Blob(chunks.current, { type: "audio/wav" });
         const formData = new FormData();
+
         formData.append("file", recordedBlob);
-        console.log("FormData with audio blob:", formData);
         handleTranscribe(recordedBlob);
         const url = URL.createObjectURL(recordedBlob);
+
         setRecordedUrl(url);
         chunks.current = [];
       };
@@ -373,6 +387,7 @@ export default function InteractiveAvatar() {
   };
 
   const previousText = usePrevious(text);
+
   useEffect(() => {
     if (!previousText && text) {
       avatar.current?.startListening();
@@ -413,20 +428,19 @@ export default function InteractiveAvatar() {
         display: "flex",
         alignContent: "center",
         justifyContent: "center",
-        backgroundColor: "#262626"
+        backgroundColor: "#262626",
       }}
     >
-    
-    <div>
-      <Image 
-        src={yukkaLogo} 
-        alt="Yukka Logo" 
-        width={150} 
-        height={100}
-       // You'll need to specify both width and height in Next.js
-      />
-    </div>
-   
+      <div>
+        <Image
+          alt="Yukka Logo"
+          src={yukkaLogo}
+          width={150}
+          height={100}
+          // You'll need to specify both width and height in Next.js
+        />
+      </div>
+
       <Card>
         <CardBody
           className="h-[500px] flex flex-col justify-center items-center"
@@ -452,7 +466,6 @@ export default function InteractiveAvatar() {
               <div className="flex flex-col gap-2 absolute bottom-3 right-3">
                 <Button
                   size="md"
-                  onClick={handleInterrupt}
                   style={{
                     fontWeight: "400",
                     border: "1px solid #1f816d",
@@ -460,18 +473,19 @@ export default function InteractiveAvatar() {
                     borderRadius: "5px",
                   }}
                   variant="shadow"
+                  onClick={handleInterrupt}
                 >
                   <StopCircle size={32} />
                 </Button>
                 <Button
                   size="md"
-                  onClick={endSession}
                   style={{
                     fontWeight: "400",
                     backgroundColor: "#1f816d",
                     borderRadius: "5px",
                   }}
                   variant="shadow"
+                  onClick={endSession}
                 >
                   End session
                 </Button>
@@ -484,24 +498,25 @@ export default function InteractiveAvatar() {
                   Cockpit User Email
                 </p>
                 <Input
+                  placeholder="Enter your email"
                   type="email"
                   value={userEmail}
                   onChange={(e) => setUserEmail(e.target.value)}
-                  placeholder="Enter your email"
                 />
-                <p className="text-sm font-medium leading-none" style={{marginTop: "35px"}}>
+                <p
+                  className="text-sm font-medium leading-none"
+                  style={{ marginTop: "35px" }}
+                >
                   Cockpit User Password
                 </p>
                 <Input
-                  placeholder="Enter your password"
-                  onChange={(e) => setUserPassword(e.target.value)}
                   className="max-w-full"
                   endContent={
                     <button
+                      aria-label="toggle password visibility"
                       className="focus:outline-none"
                       type="button"
                       onClick={toggleVisibility}
-                      aria-label="toggle password visibility"
                     >
                       {passIsVisible ? (
                         <EyeSlashFilledIcon className="text-2xl text-default-400 pointer-events-none" />
@@ -510,12 +525,13 @@ export default function InteractiveAvatar() {
                       )}
                     </button>
                   }
+                  placeholder="Enter your password"
                   type={passIsVisible ? "text" : "password"}
+                  onChange={(e) => setUserPassword(e.target.value)}
                 />
               </div>
               <Button
                 size="md"
-                onClick={startSession}
                 style={{
                   fontWeight: "400",
                   backgroundColor: "#1f816d",
@@ -523,12 +539,13 @@ export default function InteractiveAvatar() {
                   width: "70%",
                 }}
                 variant="shadow"
+                onClick={startSession}
               >
                 Start speaking with our agent
               </Button>
             </div>
           ) : (
-            <Spinner size="lg" color="default" />
+            <Spinner color="default" size="lg" />
           )}
         </CardBody>
         <Divider />
@@ -538,38 +555,38 @@ export default function InteractiveAvatar() {
             style={{ backgroundColor: "#78787833" }}
           >
             <InteractiveAvatarTextInput
-              placeholder="Type something for the avatar to respond"
-              input={text}
-              onSubmit={() => handleSpeak(text)}
-              setInput={setText}
-              loading={isLoadingRepeat}
               disabled={avatarIsSpeaking}
-              hideSubmitButton={isListening || text === ""}
               endContent={
                 isLoadingRepeat ? (
                   <Spinner
                     className="text-indigo-300 hover:text-indigo-200"
-                    size="sm"
                     color="default"
+                    size="sm"
                   />
                 ) : (
                   <Button
-                    onClick={handleMicClick}
-                    style={{
-                      backgroundColor: isListening ? "#1f816d" : "transparent",
-                    }}
                     className={clsx(
                       "text-indigo-300 hover:text-indigo-200",
                       (avatarIsSpeaking || text !== "") && "opacity-0"
                     )}
+                    style={{
+                      backgroundColor: isListening ? "#1f816d" : "transparent",
+                    }}
+                    onClick={handleMicClick}
                   >
                     <Microphone
-                      size={24}
                       className="text-indigo-300 hover:text-indigo-200"
+                      size={24}
                     />
                   </Button>
                 )
               }
+              hideSubmitButton={isListening || text === ""}
+              input={text}
+              loading={isLoadingRepeat}
+              placeholder="Type something for the avatar to respond"
+              setInput={setText}
+              onSubmit={() => handleSpeak(text)}
             />
           </CardFooter>
         )}
