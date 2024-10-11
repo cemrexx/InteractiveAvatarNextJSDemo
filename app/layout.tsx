@@ -19,11 +19,11 @@ const fontMono = FontMono({
 
 export const metadata: Metadata = {
   title: {
-    default: "HeyGen Interactive Avatar SDK Demo",
+    default: "Yukka LLM Assistant",
     template: `%s - HeyGen Interactive Avatar SDK Demo`,
   },
   icons: {
-    icon: "/heygen-logo.png",
+    icon: "/mini_icon.png",
   },
 };
 
@@ -48,8 +48,8 @@ export default function RootLayout({
       <head />
       <body className={clsx("min-h-screen bg-background antialiased")}>
         <Providers themeProps={{ attribute: "class", defaultTheme: "dark" }}>
-          <main className="relative flex flex-col h-screen w-screen">
-            <NavBar />
+          <main className="relative flex flex-col h-screen w-screen" style={{justifyContent:"center", backgroundColor:"#262626"}}>
+            {/* <NavBar /> */}
             {children}
           </main>
         </Providers>
