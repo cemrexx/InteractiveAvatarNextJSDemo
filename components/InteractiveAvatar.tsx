@@ -74,7 +74,7 @@ export default function InteractiveAvatar() {
 
     return now > Number(expiration); // Check if current time is past the expiration time
   };
-  const history = [];
+  const history: never[] = [];
 
   async function fetchAccessToken() {
     try {
@@ -147,7 +147,7 @@ export default function InteractiveAvatar() {
             Authorization: `Bearer ${NEXT_PUBLIC_OPENAI_API_KEY}`,
           },
           body: formData,
-        },
+        }
       );
 
       const data = await response.json();
@@ -214,12 +214,12 @@ export default function InteractiveAvatar() {
               Authorization: `Bearer ${cockpitToken}`, // Use token from environment
             },
             body: JSON.stringify(payload), // Convert JS object to JSON
-          },
+          }
         );
 
         if (!response.ok) {
           throw new Error(
-            `open returned status ${response.status}: ${response.statusText}`,
+            `open returned status ${response.status}: ${response.statusText}`
           );
         }
         const result = await response.json();
@@ -246,13 +246,13 @@ export default function InteractiveAvatar() {
         avatarSpeakTrigger(llmResponse);
       } catch (error) {
         setDebug(
-          `Error while communicating with LLM: ${(error as Error).message}`,
+          `Error while communicating with LLM: ${(error as Error).message}`
         );
       }
 
       setIsLoadingRepeat(false);
     },
-    [text, cockpitToken, data?.session_id],
+    [text, cockpitToken, data?.session_id]
   );
 
   async function handleInterrupt() {
@@ -290,7 +290,7 @@ export default function InteractiveAvatar() {
             "Content-Type": "application/json",
           },
           body: user_credential,
-        },
+        }
       );
 
       if (!response.ok) throw new Error("Failed to fetch token");
@@ -405,7 +405,7 @@ export default function InteractiveAvatar() {
   useEffect(() => {
     if (data?.session_id && stream) {
       avatarSpeakTrigger(
-        "Hi there, I am your YUUKA LLM News Assistant. How can I assist you today with your financial analysis or any other queries you might have?",
+        "Hi there, I am your YUUKA LLM News Assistant. How can I assist you today with your financial analysis or any other queries you might have?"
       );
     }
   }, [data?.session_id, stream]);
@@ -567,7 +567,7 @@ export default function InteractiveAvatar() {
                   <Button
                     className={clsx(
                       "text-indigo-300 hover:text-indigo-200",
-                      (avatarIsSpeaking || text !== "") && "opacity-0",
+                      (avatarIsSpeaking || text !== "") && "opacity-0"
                     )}
                     style={{
                       backgroundColor: isListening ? "#1f816d" : "transparent",
