@@ -283,7 +283,7 @@ export default function InteractiveAvatar() {
 
     try {
       const response = await fetch(
-        "https://customer.api.yukkalab.com/v5/authenticate",
+        "https://customer.stage.api.yukkalab.com/v5/authenticate",
         {
           method: "POST",
           headers: {
