@@ -293,7 +293,10 @@ export default function InteractiveAvatar() {
         }
       );
 
-      if (!response.ok) throw new Error("Failed to fetch token");
+      if (!response.ok) {
+        setIsLoadingSession(false);
+        throw new Error("Failed to fetch token");
+      }
 
       const result = await response.json();
 
@@ -314,11 +317,11 @@ export default function InteractiveAvatar() {
   async function fetchCockpitToken() {
     const storedToken = localStorage.getItem(TOKEN_KEY);
 
-    if (storedToken && !isTokenExpired()) {
-      setCockpitToken(storedToken);
+    // if (storedToken && !isTokenExpired()) {
+    //   setCockpitToken(storedToken);
 
-      return storedToken; // Return existing token if it's valid
-    }
+    //   return storedToken;
+    // }
 
     // Fetch new token if none exists or it's expired
     const newToken = await fetchNewToken();
@@ -511,6 +514,7 @@ export default function InteractiveAvatar() {
                 </p>
                 <Input
                   className="max-w-full"
+                  value={userPassword}
                   endContent={
                     <button
                       aria-label="toggle password visibility"
@@ -518,7 +522,7 @@ export default function InteractiveAvatar() {
                       type="button"
                       onClick={toggleVisibility}
                     >
-                      {passIsVisible ? (
+                      {!passIsVisible ? (
                         <EyeSlashFilledIcon className="text-2xl text-default-400 pointer-events-none" />
                       ) : (
                         <EyeFilledIcon className="text-2xl text-default-400 pointer-events-none" />
